@@ -420,15 +420,29 @@ export default async function DashboardPage({
             {report.isLatestCycle && (
               <section>
                 <p className="label-caps mb-2">Ciclos</p>
-                <form action={startNewCycle.bind(null, installation.id, cycle.id)} className="flex flex-wrap items-end gap-3">
-                  <label className="block">
-                    <span className="mb-1 block text-xs font-medium text-mineral-600">Nome do novo ciclo</span>
-                    <input name="name" required className="input w-56" placeholder="Ex.: Ciclo 2027.1" />
-                  </label>
-                  <button type="submit" className="btn-secondary">
+                {/* Ação que não se desfaz: confirmação antes de encerrar (item 7). */}
+                <details className="relative inline-block">
+                  <summary className="btn-secondary cursor-pointer list-none [&::-webkit-details-marker]:hidden">
                     Encerrar ciclo atual e iniciar novo
-                  </button>
-                </form>
+                  </summary>
+                  <form
+                    action={startNewCycle.bind(null, installation.id, cycle.id)}
+                    className="mt-2 w-80 space-y-3 rounded-xl border border-mineral-200 bg-white p-4 shadow-[var(--shadow-float)]"
+                  >
+                    <p className="text-sm font-semibold text-mineral-900">Encerrar {cycle.name}?</p>
+                    <p className="text-xs text-mineral-600">
+                      O ciclo atual fica só para consulta. O novo começa sem avaliações; os documentos
+                      continuam disponíveis. Não dá para reabrir o ciclo encerrado.
+                    </p>
+                    <label className="block">
+                      <span className="mb-1 block text-xs font-medium text-mineral-600">Nome do novo ciclo</span>
+                      <input name="name" required className="input w-full" defaultValue={nextCycleName(cycle.name)} />
+                    </label>
+                    <button type="submit" className="btn-primary w-full">
+                      Encerrar e iniciar
+                    </button>
+                  </form>
+                </details>
               </section>
             )}
           </div>
@@ -445,4 +459,11 @@ function Legend({ color, label }: { color: string; label: string }) {
       {label}
     </span>
   );
+}
+
+/** "Ciclo 2026.1" → "Ciclo 2026.2"; sem número no fim, sugere o ano atual. */
+function nextCycleName(current: string): string {
+  const m = current.match(/^(.*?)(\d+)$/);
+  if (m) return `${m[1]}${Number(m[2]) + 1}`;
+  return `Ciclo ${new Date().getFullYear()}.1`;
 }

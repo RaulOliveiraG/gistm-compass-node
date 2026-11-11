@@ -10,6 +10,10 @@ import type { InstallationPhase } from "@prisma/client";
 
 const PHASES = ["NOVA", "EM_CONSTRUCAO", "OPERACAO", "INATIVA", "FECHAMENTO"] as const;
 
+const CONSTRUCTION_METHODS = ["MONTANTE", "JUSANTE", "LINHA_DE_CENTRO", "ETAPA_UNICA", "OUTRO"];
+const GISTM_CLASSES = ["BAIXA", "SIGNIFICATIVA", "ALTA", "MUITO_ALTA", "EXTREMA"];
+const yesNo = (v: string) => (v === "SIM" ? true : v === "NAO" ? false : null);
+
 function readInstallationForm(formData: FormData) {
   const text = (key: string) => String(formData.get(key) ?? "").trim();
   const phaseRaw = text("phase");
@@ -30,6 +34,13 @@ function readInstallationForm(formData: FormData) {
     rtfeName: text("rtfeName") || null,
     accountableExecutive: text("accountableExecutive") || null,
     otherResponsibles: text("otherResponsibles") || null,
+    country: /^[A-Z]{2}$/.test(text("country").toUpperCase()) ? text("country").toUpperCase() : "BR",
+    uf: text("uf").toUpperCase().slice(0, 2) || null,
+    inPnsb: yesNo(text("inPnsb")),
+    criClassification: ["ALTO", "MEDIO", "BAIXO"].includes(text("criClassification")) ? text("criClassification") : null,
+    constructionMethod: CONSTRUCTION_METHODS.includes(text("constructionMethod")) ? text("constructionMethod") : null,
+    gistmConsequence: GISTM_CLASSES.includes(text("gistmConsequence")) ? text("gistmConsequence") : null,
+    zasCommunity: yesNo(text("zasCommunity")),
   };
 }
 
@@ -126,6 +137,7 @@ export async function deleteInstallation(installationId: string) {
     await tx.assessment.deleteMany({ where: { installationId } });
     await tx.externalAnalysis.deleteMany({ where: { installationId } });
     await tx.analysisRun.deleteMany({ where: { installationId } });
+    await tx.legalCheck.deleteMany({ where: { installationId } });
     await tx.documentFile.deleteMany({ where: { installationId } });
     await tx.cycle.deleteMany({ where: { installationId } });
     await tx.installation.delete({ where: { id: installationId } });

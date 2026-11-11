@@ -10,15 +10,26 @@ import type { FinalClassification } from "@prisma/client";
 // Só contam termos que aparecem em poucos requisitos, senão todo
 // documento parecia relevante pra tudo.
 export const DISTINCTIVE_MAX_REQS = 4;
-/** Fração mínima dos termos distintivos do requisito presentes no documento. */
+/**
+ * Fração mínima dos termos distintivos do requisito presentes no documento,
+ * contada sobre no máximo RELEVANCE_CAP termos: requisitos longos (com itens
+ * a, b, c…) têm dezenas de termos e um documento curto sobre o tema nunca
+ * passaria de 35% de todos eles.
+ */
 export const RELEVANCE_MIN = 0.35;
+export const RELEVANCE_CAP = 20;
 /** E pelo menos esta quantidade de termos distintivos em comum. */
 export const RELEVANCE_MIN_TERMS = 3;
 /** Acima desta relevância, um requisito validado como gap recebe o aviso "Rever". */
 export const STRONG_RELEVANCE = 0.5;
 
-function distinctiveTokens(requirements: { id: string; title: string; description: string }[]) {
-  const perReq = new Map(requirements.map((r) => [r.id, tokenize(`${r.title} ${r.description}`)]));
+function distinctiveTokens(
+  requirements: { id: string; title: string; description: string; descriptionEn?: string | null }[]
+) {
+  // Texto em português e em inglês: boa parte dos documentos técnicos é em inglês.
+  const perReq = new Map(
+    requirements.map((r) => [r.id, tokenize(`${r.title} ${r.description} ${r.descriptionEn ?? ""}`)])
+  );
   const df = new Map<string, number>();
   for (const toks of perReq.values()) for (const t of toks) df.set(t, (df.get(t) ?? 0) + 1);
   const out = new Map<string, Set<string>>();
@@ -30,7 +41,7 @@ function relevance(distinct: Set<string>, docTokens: Set<string>) {
   if (distinct.size === 0) return { score: 0, matched: 0 };
   let matched = 0;
   for (const t of distinct) if (docTokens.has(t)) matched++;
-  return { score: matched / distinct.size, matched };
+  return { score: matched / Math.min(distinct.size, RELEVANCE_CAP), matched };
 }
 
 export interface IncrementalDocResult {

@@ -20,6 +20,10 @@ const nextConfig: NextConfig = {
     serverActions: {
       bodySizeLimit: "100mb",
     },
+    // Com o middleware de autenticação, o Next guarda o corpo da requisição na
+    // memória até 10 MB e corta o resto; acima disso a importação falhava com
+    // erro 500. O botão Importar também envia em lotes de 8 MB.
+    proxyClientMaxBodySize: "100mb",
   },
 };
 

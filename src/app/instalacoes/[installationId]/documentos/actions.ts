@@ -4,8 +4,9 @@ import { revalidatePath } from "next/cache";
 import path from "node:path";
 import { prisma } from "@/lib/prisma";
 import { assertInstallationOwnership } from "@/lib/context";
-import { getStorage } from "@/lib/storage";
-import { saveDocumentFile } from "@/lib/document-upload";
+import { buildObjectKey, getStorage } from "@/lib/storage";
+import { saveDocumentFile, registerStoredDocument } from "@/lib/document-upload";
+import { isAllowedExtension, MAX_DIRECT_FILE_SIZE_BYTES } from "@/lib/upload-limits";
 import { flash } from "@/lib/flash";
 
 function revalidateInstallation(installationId: string) {
@@ -52,6 +53,97 @@ export async function importDocuments(installationId: string, formData: FormData
     await flash(`Nenhum arquivo importado. Formato ou tamanho não aceito: ${skipped.slice(0, 3).join(", ")}${skipped.length > 3 ? "…" : ""}`, "warn");
   } else if (skipped.length > 0) {
     await flash(`${imported} arquivo(s) importado(s). ${skipped.length} ignorado(s) por formato ou tamanho.`, "warn");
+  } else {
+    await flash(imported === 1 ? "Documento importado." : `${imported} documentos importados.`);
+  }
+}
+
+/**
+ * Um lote da importação em partes: o botão Importar divide a seleção em
+ * lotes pequenos e chama esta ação para cada um, porque o servidor recusa
+ * envios muito grandes de uma vez. Não mostra aviso; quem chama soma os
+ * resultados e chama `finishImport` no fim.
+ */
+export async function importDocumentsBatch(installationId: string, formData: FormData) {
+  const installation = await assertInstallationOwnership(installationId);
+  const files = formData.getAll("files").filter((f): f is File => f instanceof File && f.size > 0);
+  let imported = 0;
+  const skipped: string[] = [];
+  for (const file of files) {
+    const name = path.basename(file.name);
+    if (name.startsWith(".") || name.toLowerCase() === "thumbs.db" || name.toLowerCase() === "desktop.ini") continue;
+    try {
+      await saveDocumentFile(installation.organizationId, installationId, file);
+      imported++;
+    } catch {
+      skipped.push(name);
+    }
+  }
+  return { imported, skipped };
+}
+
+/**
+ * Envio direto ao bucket: devolve uma URL assinada (PUT) para cada arquivo
+ * aceito. Com storage local, devolve `direct: false` e o botão usa o envio
+ * em lotes pelo servidor.
+ */
+export async function prepareDirectUploads(
+  installationId: string,
+  files: { name: string; size: number }[]
+): Promise<{ direct: boolean; uploads: { index: number; key: string; url: string }[]; rejected: string[] }> {
+  const installation = await assertInstallationOwnership(installationId);
+  const storage = getStorage();
+  const uploads: { index: number; key: string; url: string }[] = [];
+  const rejected: string[] = [];
+  for (let index = 0; index < files.length; index++) {
+    const f = files[index];
+    const name = path.basename(f.name);
+    const ext = path.extname(name).toLowerCase();
+    if (name.startsWith(".") || !isAllowedExtension(ext) || f.size <= 0 || f.size > MAX_DIRECT_FILE_SIZE_BYTES) {
+      rejected.push(name);
+      continue;
+    }
+    const key = buildObjectKey(installation.organizationId, installationId, ext);
+    const url = storage.presignPut(key, 6 * 3600);
+    if (!url) return { direct: false, uploads: [], rejected: [] };
+    uploads.push({ index, key, url });
+  }
+  return { direct: true, uploads, rejected };
+}
+
+/** Registra um arquivo já enviado direto ao bucket por `prepareDirectUploads`. */
+export async function registerDirectUpload(
+  installationId: string,
+  stored: { key: string; name: string; size: number; mimeType: string }
+): Promise<boolean> {
+  const installation = await assertInstallationOwnership(installationId);
+  // A chave tem de ser desta organização e desta estrutura, no formato gerado por buildObjectKey.
+  const prefix = `${installation.organizationId}/${installationId}/`;
+  const ext = path.extname(stored.name).toLowerCase();
+  if (
+    !stored.key.startsWith(prefix) ||
+    !/^[0-9a-f-]{36}\.[a-z0-9]+$/.test(stored.key.slice(prefix.length)) ||
+    !isAllowedExtension(ext) ||
+    stored.size > MAX_DIRECT_FILE_SIZE_BYTES
+  ) {
+    return false;
+  }
+  try {
+    await registerStoredDocument(installationId, { ...stored, name: path.basename(stored.name) });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** Fecha a importação em partes: atualiza as telas e mostra o resumo. */
+export async function finishImport(installationId: string, imported: number, skipped: string[]) {
+  await assertInstallationOwnership(installationId);
+  revalidateInstallation(installationId);
+  if (imported === 0) {
+    await flash(`Nenhum arquivo importado. Formato ou tamanho não aceito: ${skipped.slice(0, 3).join(", ")}${skipped.length > 3 ? "…" : ""}`, "warn");
+  } else if (skipped.length > 0) {
+    await flash(`${imported} arquivo(s) importado(s). ${skipped.length} ignorado(s) (formato ou mais de 50 MB): ${skipped.slice(0, 3).join(", ")}${skipped.length > 3 ? "…" : ""}`, "warn");
   } else {
     await flash(imported === 1 ? "Documento importado." : `${imported} documentos importados.`);
   }

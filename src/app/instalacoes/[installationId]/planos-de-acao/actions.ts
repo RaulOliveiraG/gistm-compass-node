@@ -169,8 +169,20 @@ export async function updateActionStatus(
       closureDocumentId: status === "CONCLUIDA" ? closureDocumentId : undefined,
       closureLink: status === "CONCLUIDA" ? closureLink : undefined,
     },
-    include: { assessment: { select: { installationId: true, requirementId: true } } },
+    include: { assessment: { select: { id: true, status: true, installationId: true, requirementId: true } } },
   });
+
+  // Ação concluída num requisito já validado: a classificação pode ter
+  // mudado. Marca "Rever" para o revisor confirmar (não altera a decisão).
+  if (status === "CONCLUIDA" && action.assessment.status === "VALIDADO") {
+    await prisma.assessment.update({
+      where: { id: action.assessment.id },
+      data: {
+        reviewFlag: `Ação ${action.code ?? ""} concluída: confira se a classificação mudou.`.replace("  ", " "),
+        reviewFlagAt: new Date(),
+      },
+    });
+  }
 
   await prisma.actionLog.create({
     data: {

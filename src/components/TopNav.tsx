@@ -13,6 +13,7 @@ import {
   LogOut,
   ArrowLeft,
   Building2,
+  Scale,
 } from "lucide-react";
 import { CompassMark } from "@/components/CompassMark";
 import { InstallationSwitcher } from "@/components/InstallationSwitcher";
@@ -49,6 +50,7 @@ export function TopNav({
     { href: `${base}/documentos`, label: "Documentação", icon: FileStack },
     { href: `${base}/relatorio`, label: "Relatório", icon: FileBarChart },
     { href: `${base}/documentos/divulgacao`, label: "Divulgação", icon: Megaphone },
+    { href: `${base}/normas`, label: "Normas e prazos", icon: Scale },
     { href: `${base}/estrutura`, label: "Dados da estrutura", icon: Building2 },
   ];
 

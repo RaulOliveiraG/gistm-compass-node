@@ -49,12 +49,15 @@ export async function computeTechnicalDashboard(installationId: string, cycleId?
     }),
   ]);
 
+  const assessmentByRequirement = new Map(assessments.map((a) => [a.requirementId, a]));
+
   const missingDocumentHints: MissingDocumentHint[] = detectMissingDocumentHints(
-    requirements,
+    requirements.filter((r) => {
+      const a = assessmentByRequirement.get(r.id);
+      return (a?.finalClassification ?? a?.aiClassification) !== "NAO_SE_APLICA";
+    }),
     documents
   );
-
-  const assessmentByRequirement = new Map(assessments.map((a) => [a.requirementId, a]));
 
   // Divergência IA x revisor humano: onde a classificação final validada
   // discorda da última sugestão da IA — mostra onde o julgamento humano está
@@ -96,8 +99,12 @@ export async function computeTechnicalDashboard(installationId: string, cycleId?
     _count: { _all: true },
   });
   const requirementIdsWithEvidence = new Set(evidenceCounts.map((e) => e.requirementId));
+  const isNotApplicable = (id: string) => {
+    const a = assessmentByRequirement.get(id);
+    return (a?.finalClassification ?? a?.aiClassification) === "NAO_SE_APLICA";
+  };
   const noEvidence: NoEvidenceItem[] = requirements
-    .filter((r) => !requirementIdsWithEvidence.has(r.id))
+    .filter((r) => !requirementIdsWithEvidence.has(r.id) && !isNotApplicable(r.id))
     .map((r) => ({
       id: r.id,
       code: r.code,

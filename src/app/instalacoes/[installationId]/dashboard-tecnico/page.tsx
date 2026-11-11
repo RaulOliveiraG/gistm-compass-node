@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { shortTitle } from "@/lib/short-titles";
 import { format } from "date-fns";
 import { computeTechnicalDashboard } from "@/lib/technical-dashboard";
 import { classificationLabel } from "@/lib/ai-simulator";
@@ -46,7 +47,7 @@ export default async function TechnicalDashboardPage({
     <div>
       <PageHeader
         toolbar={<PainelTabs installationId={installation.id} />}
-        title="Painel"
+        title="Sumário técnico"
         description={`${installation.name} · ${cycle.name} — indicadores para quem está revisando as avaliações, não para a diretoria.`}
         action={<CycleSwitcher cycles={data.allCycles} currentCycleId={cycle.id} />}
       />
@@ -58,7 +59,7 @@ export default async function TechnicalDashboardPage({
           </div>
         )}
 
-        <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-6">
+        <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-5">
           <Card className="px-5 py-4">
             <p className="text-xs font-medium text-mineral-500">Divergência IA × humano</p>
             <p className="mt-1 text-2xl font-semibold tabular-nums text-mineral-900">
@@ -74,15 +75,6 @@ export default async function TechnicalDashboardPage({
               {data.noEvidence.length}
             </p>
             <p className="mt-1 text-xs text-mineral-500">de {data.totalRequirements} requisitos</p>
-          </Card>
-          <Card className="px-5 py-4">
-            <p className="text-xs font-medium text-mineral-500">Confiança média da IA</p>
-            <p className="mt-1 text-2xl font-semibold tabular-nums text-mineral-900">
-              {data.avgAiConfidence !== null ? `${data.avgAiConfidence}%` : "—"}
-            </p>
-            <p className="mt-1 text-xs text-mineral-500">
-              {data.lowConfidenceCount} sugestão(ões) abaixo de 50%
-            </p>
           </Card>
           <Card className="px-5 py-4">
             <p className="text-xs font-medium text-mineral-500">Aguardando revisão humana</p>
@@ -138,7 +130,7 @@ export default async function TechnicalDashboardPage({
         <Card>
           <CardHeader
             title="Divergência entre sugestão da IA e decisão humana"
-            subtitle="Onde o revisor técnico discordou da última leitura automática — sinaliza pontos em que a IA simulada erra mais"
+            subtitle="Onde o revisor técnico discordou da última leitura automática — sinaliza pontos em que a IA erra mais"
           />
           {data.divergences.length === 0 ? (
             <EmptyState>Nenhuma divergência registrada — a decisão final acompanhou a sugestão da IA em todos os requisitos validados.</EmptyState>
@@ -163,7 +155,7 @@ export default async function TechnicalDashboardPage({
                           }`}
                           className="text-mineral-700 hover:text-brand-700"
                         >
-                          <span className="font-mono text-xs text-mineral-500">{d.code}</span> {d.title}
+                          <span className="font-mono text-xs text-mineral-500">{d.code}</span> {shortTitle(d.code, d.title)}
                         </Link>
                       </td>
                       <td className="py-2 pr-3">
@@ -202,7 +194,7 @@ export default async function TechnicalDashboardPage({
                       className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm text-mineral-700 hover:bg-mineral-50 hover:text-brand-700"
                     >
                       <span className="font-mono text-xs text-mineral-500">{r.code}</span>
-                      <span className="truncate">{r.title}</span>
+                      <span className="truncate">{shortTitle(r.code, r.title)}</span>
                     </Link>
                   </li>
                 ))}
@@ -231,7 +223,7 @@ export default async function TechnicalDashboardPage({
                     }`}
                     className="text-mineral-700 hover:text-brand-700"
                   >
-                    <span className="font-mono text-xs text-mineral-500">{hint.code}</span> {hint.title}
+                    <span className="font-mono text-xs text-mineral-500">{hint.code}</span> {shortTitle(hint.code, hint.title)}
                   </Link>
                   <p className="mt-0.5 text-xs text-mineral-500">
                     Esperado: {hint.expectedEvidence}

@@ -169,8 +169,8 @@ function ChatBubble({ msg }: { msg: ChatMessage }) {
         <Bot size={14} />
       </div>
       <div className="max-w-[75%] space-y-2">
-        <div className="whitespace-pre-wrap rounded-2xl rounded-tl-sm bg-mineral-100 px-4 py-2.5 text-sm text-mineral-800">
-          {msg.content}
+        <div className="space-y-1 rounded-2xl rounded-tl-sm bg-mineral-100 px-4 py-2.5 text-sm text-mineral-800">
+          <LiteMarkdown text={msg.content} />
         </div>
         {msg.sources && msg.sources.length > 0 && (
           <div className="flex flex-wrap gap-1.5">
@@ -188,5 +188,32 @@ function ChatBubble({ msg }: { msg: ChatMessage }) {
         )}
       </div>
     </div>
+  );
+}
+
+/**
+ * Formatação mínima da resposta da IA: **negrito**, listas com "- " e
+ * parágrafos. Remove ids internos de documento que às vezes vêm no texto.
+ */
+function LiteMarkdown({ text }: { text: string }) {
+  const clean = text.replace(/\s*\((?:id|documentId)\s*[=:]\s*[a-z0-9]+\)/gi, "").replace(/^#{1,6}\s+/gm, "");
+  const inline = (line: string) =>
+    line.split(/(\*\*[^*]+\*\*)/g).map((part, i) =>
+      part.startsWith("**") && part.endsWith("**") ? <strong key={i}>{part.slice(2, -2)}</strong> : part.replace(/\*/g, "")
+    );
+  return (
+    <>
+      {clean.split(/\n+/).map((line, i) => {
+        const bullet = line.match(/^\s*[-•]\s+(.*)$/);
+        return bullet ? (
+          <p key={i} className="flex gap-1.5 pl-1">
+            <span aria-hidden>•</span>
+            <span>{inline(bullet[1])}</span>
+          </p>
+        ) : (
+          <p key={i}>{inline(line)}</p>
+        );
+      })}
+    </>
   );
 }

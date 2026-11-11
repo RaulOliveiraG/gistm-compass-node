@@ -66,7 +66,7 @@ export function InstallationFormFields({ installation }: { installation?: Instal
 
       <Step n={3} title="Responsáveis">
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-          <Field label="Engenheiro de Registro (EoR)">
+          <Field label="Engenheiro de Registro (EdR / EoR)">
             <input name="eorName" defaultValue={v?.eorName ?? ""} className="input" placeholder="Nome" />
           </Field>
           <Field label="Empresa do EoR">
@@ -75,7 +75,7 @@ export function InstallationFormFields({ installation }: { installation?: Instal
           <Field label="E-mail do EoR">
             <input type="email" name="eorEmail" defaultValue={v?.eorEmail ?? ""} className="input" />
           </Field>
-          <Field label="Engenheiro Responsável (RTFE)">
+          <Field label="Engenheiro Responsável (RTER / RTFE)">
             <input name="rtfeName" defaultValue={v?.rtfeName ?? ""} className="input" />
           </Field>
           <Field label="Executivo Responsável">
@@ -92,7 +92,70 @@ export function InstallationFormFields({ installation }: { installation?: Instal
           </Field>
         </div>
       </Step>
+
+      <Step n={4} title="Enquadramento legal">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-4">
+          <Field
+            label="País"
+            info={
+              <InfoTip label="Por que o país importa">
+                Define quais leis entram na aba &quot;Normas e prazos&quot;. Fora do Brasil, só o
+                GISTM é aplicado.
+              </InfoTip>
+            }
+          >
+            <input name="country" maxLength={2} defaultValue={v?.country ?? "BR"} className="input uppercase" placeholder="BR" />
+          </Field>
+          <Field label="Estado (UF)">
+            <input name="uf" maxLength={2} defaultValue={v?.uf ?? ""} className="input uppercase" placeholder="MG" />
+          </Field>
+          <Field label="Inserida na PNSB?">
+            <YesNo name="inPnsb" value={v?.inPnsb} />
+          </Field>
+          <Field label="Categoria de Risco (CRI)">
+            <select name="criClassification" defaultValue={v?.criClassification ?? ""} className="input">
+              <option value="">—</option>
+              <option value="ALTO">Alto</option>
+              <option value="MEDIO">Médio</option>
+              <option value="BAIXO">Baixo</option>
+            </select>
+          </Field>
+          <Field label="Método construtivo">
+            <select name="constructionMethod" defaultValue={v?.constructionMethod ?? ""} className="input">
+              <option value="">—</option>
+              <option value="MONTANTE">Alteamento a montante</option>
+              <option value="JUSANTE">Alteamento a jusante</option>
+              <option value="LINHA_DE_CENTRO">Linha de centro</option>
+              <option value="ETAPA_UNICA">Etapa única</option>
+              <option value="OUTRO">Outro</option>
+            </select>
+          </Field>
+          <Field label="Classe de consequência (GISTM)">
+            <select name="gistmConsequence" defaultValue={v?.gistmConsequence ?? ""} className="input">
+              <option value="">—</option>
+              <option value="BAIXA">Baixa</option>
+              <option value="SIGNIFICATIVA">Significativa</option>
+              <option value="ALTA">Alta</option>
+              <option value="MUITO_ALTA">Muito alta</option>
+              <option value="EXTREMA">Extrema</option>
+            </select>
+          </Field>
+          <Field label="Comunidade na ZAS?">
+            <YesNo name="zasCommunity" value={v?.zasCommunity} />
+          </Field>
+        </div>
+      </Step>
     </div>
+  );
+}
+
+function YesNo({ name, value }: { name: string; value: boolean | null | undefined }) {
+  return (
+    <select name={name} defaultValue={value === true ? "SIM" : value === false ? "NAO" : ""} className="input">
+      <option value="">Não informado</option>
+      <option value="SIM">Sim</option>
+      <option value="NAO">Não</option>
+    </select>
   );
 }
 

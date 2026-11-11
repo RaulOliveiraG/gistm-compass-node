@@ -35,8 +35,10 @@ export function InfoTip({
       <span
         role="tooltip"
         className={clsx(
-          "invisible absolute top-6 z-50 block rounded-lg border border-mineral-200 bg-white p-3 text-left font-sans text-xs font-normal normal-case leading-relaxed tracking-normal text-mineral-700 opacity-0 shadow-[var(--shadow-float)] transition-opacity",
-          "group-hover/tip:visible group-hover/tip:opacity-100 group-focus-within/tip:visible group-focus-within/tip:opacity-100",
+          // hidden (e não invisible): escondido, o balão não ocupa largura e não
+          // faz a página rolar para o lado no celular.
+          "absolute top-6 z-50 hidden max-w-[calc(100vw-2rem)] rounded-lg border border-mineral-200 bg-white p-3 text-left font-sans text-xs font-normal normal-case leading-relaxed tracking-normal text-mineral-700 shadow-[var(--shadow-float)]",
+          "group-hover/tip:block group-focus-within/tip:block",
           width,
           align === "left" ? "left-0" : "right-0"
         )}

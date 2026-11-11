@@ -97,7 +97,7 @@ export default async function RelatorioPage({
                 label="Atendimento geral"
                 value={report.overallCompliance !== null ? `${report.overallCompliance}%` : "—"}
               />
-              <CoverStat label="Requisitos avaliados" value={`${report.validatedCount}/${report.totalRequirements}`} />
+              <CoverStat label="Requisitos validados" value={`${report.validatedCount}/${report.totalRequirements}`} />
               <CoverStat label="Gaps de criticidade alta" value={String(report.criticalityCounts.alta)} />
               <CoverStat label="Ações vencidas" value={String(report.overdueActions.length)} />
             </div>
@@ -131,22 +131,23 @@ export default async function RelatorioPage({
           <table className="w-full text-sm">
             <tbody className="divide-y divide-mineral-100 print:divide-mineral-300">
               <Row label="Atendimento geral" value={report.overallCompliance !== null ? `${report.overallCompliance}%` : "—"} />
-              <Row label="Requisitos avaliados" value={`${report.validatedCount} de ${report.totalRequirements}`} />
+              <Row label="Requisitos analisados" value={`${report.analyzedCount} de ${report.totalRequirements}`} />
+              <Row label="Validados por um revisor" value={`${report.validatedCount} de ${report.totalRequirements}`} />
               <Row
                 label="Atende totalmente"
-                value={`${report.totalmente} (${pct(report.totalmente, report.validatedCount)}%)`}
+                value={`${report.totalmente} (${pct(report.totalmente, report.analyzedCount)}%)`}
               />
               <Row
                 label="Atende parcialmente"
-                value={`${report.parcialmente} (${pct(report.parcialmente, report.validatedCount)}%)`}
+                value={`${report.parcialmente} (${pct(report.parcialmente, report.analyzedCount)}%)`}
               />
               <Row
                 label="Não atende"
-                value={`${report.naoAtende} (${pct(report.naoAtende, report.validatedCount)}%)`}
+                value={`${report.naoAtende} (${pct(report.naoAtende, report.analyzedCount)}%)`}
               />
               <Row
                 label="Não se aplica"
-                value={`${report.naoSeAplica} (${pct(report.naoSeAplica, report.validatedCount)}%)`}
+                value={`${report.naoSeAplica} (${pct(report.naoSeAplica, report.analyzedCount)}%)`}
               />
             </tbody>
           </table>

@@ -47,7 +47,9 @@ export async function answerQuestionAboutInstallation(
     `REGRAS:\n` +
     `- Responda sempre em português, de forma direta e técnica.\n` +
     `- Baseie a resposta no conteúdo real dos documentos; não invente.\n` +
-    `- Cite a fonte: diga em qual documento (e, se possível, em que seção/página) está a informação.\n` +
+    `- Cite a fonte: diga em qual documento (e, se possível, em que seção/página) está a informação, ` +
+    `pelo título do documento. Não mostre o id interno do documento.\n` +
+    `- Texto simples: no máximo **negrito** e listas com "- ". Sem tabelas nem títulos com #.\n` +
     `- NÃO conclua que algo "não existe" só porque a primeira busca não achou. Antes de afirmar ` +
     `que não encontrou, verifique documentos relacionados, tente termos equivalentes e considere ` +
     `referências cruzadas. Só então diga que não localizou — e diga onde procurou.`;

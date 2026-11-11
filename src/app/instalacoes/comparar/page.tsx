@@ -39,12 +39,13 @@ export default async function CompararInstalacoesPage() {
         className="mb-4 inline-flex items-center gap-1.5 text-sm text-mineral-500 hover:text-mineral-700"
       >
         <ArrowLeft size={14} />
-        Todas as instalações
+        Todas as estruturas
       </Link>
-      <h1 className="text-xl font-semibold text-mineral-900">Comparação entre instalações</h1>
+      <h1 className="text-xl font-semibold text-mineral-900">Comparação entre estruturas</h1>
       <p className="mt-1 max-w-2xl text-sm text-mineral-500">
         Todas as estruturas lado a lado, ordenadas da mais crítica para a mais pronta. Cada célula
-        colorida é o % de atendimento daquele princípio GISTM — passe o mouse para o valor exato.
+        colorida é o % de atendimento daquele tópico do GISTM (T1 a T6), contando só o que já foi
+        validado por uma pessoa. Passe o mouse para ver o valor exato.
       </p>
 
       {rows.length === 0 ? (
@@ -53,7 +54,7 @@ export default async function CompararInstalacoesPage() {
         <Card className="mt-6">
           <CardHeader
             title="Mapa de conformidade"
-            subtitle={`${rows.length} instalação(ões) · princípios 1-${principleNames.length} do GISTM`}
+            subtitle={`${rows.length} estrutura(s) · tópicos 1-${principleNames.length} do GISTM`}
           />
           <div className="overflow-x-auto">
             <table className="w-full text-sm">

@@ -1,27 +1,31 @@
 import type { FinalClassification } from "@prisma/client";
 
 // Régua de avaliação usada pela IA, pela heurística e pelo ícone "i".
-// "Atende" só com evidência formal, da estrutura e em vigor.
+// Calibrada contra uma Gap Analysis real feita por especialistas (218 itens).
 
 export const CLASSIFICATION_RULES: Record<FinalClassification, string> = {
   ATENDE_TOTALMENTE:
-    "Todos os critérios do requisito estão cobertos por evidência documental específica da estrutura, " +
-    "em vigor (revisão emitida, aprovada ou assinada) e com registro de que é aplicada na prática.",
+    "Há evidência de que o critério está implantado: documento da estrutura, ou política/código do " +
+    "grupo que se aplica expressamente à operação; nomeação formal registrada em qualquer documento " +
+    "oficial (carta, contrato, relatório); estudo ou revisão feito por profissional qualificado e " +
+    "emitido (inclusive revisões \"para aprovação\" ou \"para informação\"); e registro de que é aplicado.",
   ATENDE_PARCIALMENTE:
-    "Existe evidência relacionada, mas ela não fecha o requisito: cobre só parte dos critérios; é " +
-    "corporativa/do grupo sem desdobramento para a estrutura; está em rascunho ou sem aprovação; está " +
-    "desatualizada; define o papel ou o processo sem nomeação ou registro de execução; ou um revisor " +
-    "técnico (ex.: o Engenheiro de Registro) apontou correções ainda abertas.",
+    "Existe algo, mas não fecha o critério: cobre só parte dele; está desatualizado; não é específico " +
+    "da estrutura quando o critério pede isso; os critérios técnicos não são cumpridos (ex.: fator de " +
+    "segurança abaixo do mínimo); há recomendações abertas de um revisor; o documento de base não foi " +
+    "fornecido e só aparece citado em relatórios do grupo; ou está planejado/em andamento.",
   NAO_ATENDE:
-    "Depois de procurar de verdade, não há evidência para nenhum critério do requisito, ou os " +
-    "documentos registram explicitamente que o item não existe (ex.: \"ainda não foi nomeado\", " +
-    "\"recomenda-se criar\").",
+    "O elemento específico que o critério exige não existe, mesmo que haja documentos sobre o tema. " +
+    "Ex.: ITRB ou revisor sênior independente não nomeado; aprovação ou decisão do Executivo " +
+    "Responsável sem registro; avaliação nunca feita (ex.: mudanças climáticas); registro inexistente.",
   NAO_SE_APLICA:
-    "O requisito não vale para esta estrutura pelas condições do próprio texto (ver regras de " +
-    "aplicabilidade).",
+    "O critério depende de uma condição que não ocorre na estrutura (ex.: \"se for adotada a opção " +
+    "B.2\", recuperação pós-falha sem falha, povos indígenas não identificados).",
 };
 
 export const APPLICABILITY_RULES = [
+  "Avalie a aplicabilidade item a item: um item condicional cuja condição não ocorre é \"Não se aplica\" " +
+    "e não entra na consolidação do requisito.",
   "Requisitos de recuperação pós-falha (14.2 a 14.5) só se aplicam depois de uma falha catastrófica; " +
     "se não houve falha, são \"Não se aplica\".",
   "Requisitos sobre povos indígenas (1.2) são \"Não se aplica\" quando os estudos da estrutura não " +
@@ -33,23 +37,50 @@ export const APPLICABILITY_RULES = [
 ];
 
 export const EVIDENCE_RULES = [
-  "Documento que apenas repete ou explica o texto do GISTM não é evidência de atendimento.",
-  "Relatórios de revisão técnica (EoR, DSR, auditorias) valem como evidência do que existe e, quando " +
-    "apontam lacunas ou recomendações abertas, indicam atendimento parcial ou não atendimento daquele ponto.",
-  "Política ou compromisso do grupo corporativo, sem procedimento ou registro específico da estrutura, " +
-    "é no máximo atendimento parcial.",
-  "Função descrita em manual (ex.: OMS) sem carta de nomeação ou contrato é atendimento parcial.",
+  "Documento que apenas repete ou explica o texto do GISTM, ou uma autoavaliação de conformidade, não é " +
+    "evidência de atendimento.",
+  "Relatórios de revisão técnica (EoR, DSR, inspeções, auditorias) valem como evidência do que existe e, " +
+    "quando apontam lacunas ou recomendações abertas, indicam atendimento parcial daquele ponto.",
+  "Política, código de conduta, canal de denúncia ou processo de RH do grupo que se aplica expressamente " +
+    "à operação conta como atendimento em critérios de governança e ética. Em critérios técnicos " +
+    "(projeto, monitoramento, plano de emergência) é preciso documento da estrutura.",
+  "Função descrita em manual (ex.: OMS) sem carta de nomeação, contrato ou registro de atuação é " +
+    "atendimento parcial.",
+  "Uma revisão independente pontual (ex.: revisão de projeto por terceiro) não equivale a ITRB nem a " +
+    "revisor sênior independente contínuo.",
+  "Quando o critério exige aprovação, decisão ou confirmação do Executivo Responsável e ela não está " +
+    "registrada, aquele item é \"Não atende\".",
+  "Na dúvida entre \"Parcial\" e \"Não atende\", prefira \"Parcial\" se houver qualquer elemento do " +
+    "critério implantado; \"Não atende\" é para ausência do elemento exigido.",
 ];
 
 export const CRITICALITY_RULES = {
   ALTA:
-    "A lacuna afeta controles de segurança física da estrutura (modos de falha, monitoramento, projeto, " +
-    "construção, resposta a emergência) ou a estrutura tem classificação de consequência Muito Alta ou " +
-    "Extrema e a lacuna é de governança técnica (EoR, ITRB, Executivo Responsável). Prazo sugerido: 30 dias.",
+    "A lacuna afeta controles de segurança física da estrutura (modos de falha, projeto, construção, " +
+    "operação, monitoramento, resposta a emergência) ou é falta de revisão independente/EoR numa " +
+    "estrutura de consequência Muito Alta ou Extrema. Prazo sugerido: 30 dias.",
   MEDIA:
     "Lacuna de governança, documentação ou engajamento com impacto indireto na segurança. Prazo sugerido: 90 dias.",
   BAIXA: "Lacuna formal ou administrativa, sem efeito direto na segurança. Prazo sugerido: 180 dias.",
 } as const;
+
+/**
+ * Princípios cujo assunto é o controle físico da estrutura (base de
+ * conhecimento de ruptura, projeto, construção/operação, monitoramento,
+ * emergência). Lacunas neles tendem a ser de criticidade alta.
+ */
+export const SAFETY_PRINCIPLES = new Set([4, 5, 6, 7, 13]);
+
+/** Criticidade padrão de uma lacuna quando não há leitura detalhada. */
+export function defaultCriticality(
+  code: string,
+  classification: FinalClassification
+): "ALTA" | "MEDIA" | "BAIXA" | "NAO_SE_APLICA" {
+  if (classification === "ATENDE_TOTALMENTE" || classification === "NAO_SE_APLICA") return "NAO_SE_APLICA";
+  const principle = Number(code.split(".")[0]);
+  if (SAFETY_PRINCIPLES.has(principle) || code === "2.3") return classification === "NAO_ATENDE" ? "ALTA" : "MEDIA";
+  return classification === "NAO_ATENDE" ? "MEDIA" : "BAIXA";
+}
 
 /** Requisitos que só se aplicam depois de uma falha catastrófica. */
 export const POST_FAILURE_ONLY = ["14.2", "14.3", "14.4", "14.5"];
@@ -72,7 +103,7 @@ export function aggregateItems(items: FinalClassification[]): FinalClassificatio
 export function rubricPrompt(): string {
   const list = (xs: string[]) => xs.map((x) => `- ${x}`).join("\n");
   return (
-    `CRITÉRIOS DE ATENDIMENTO (rigor de auditoria de conformidade):\n` +
+    `CRITÉRIOS DE ATENDIMENTO (aplique a cada item a, b, c…):\n` +
     `- ATENDE_TOTALMENTE: ${CLASSIFICATION_RULES.ATENDE_TOTALMENTE}\n` +
     `- ATENDE_PARCIALMENTE: ${CLASSIFICATION_RULES.ATENDE_PARCIALMENTE}\n` +
     `- NAO_ATENDE: ${CLASSIFICATION_RULES.NAO_ATENDE}\n` +

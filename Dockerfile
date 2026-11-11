@@ -33,6 +33,8 @@ ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=80
 ENV HOSTNAME=0.0.0.0
+# Datas e horas na tela no horário de Brasília (o servidor roda em UTC).
+ENV TZ=America/Sao_Paulo
 # Cabe em Lightsail Small (1 GB RAM) com margem para o SO.
 ENV NODE_OPTIONS=--max-old-space-size=512
 

@@ -85,7 +85,10 @@ export function ActionItem({
   overdue = false,
   readOnly = false,
   hideStatus = false,
+  defaultAuthor = "",
 }: {
+  /** Nome de quem está logado, para o campo "Seu nome" dos comentários. */
+  defaultAuthor?: string;
   action: ActionItemData;
   /** Código exibido (o salvo na ação ou um calculado para ações antigas). */
   code?: string;
@@ -275,7 +278,13 @@ export function ActionItem({
                 <input type="hidden" name="installationId" value={installationId} />
                 <input type="hidden" name="actionId" value={action.id} />
                 {requirementId && <input type="hidden" name="requirementId" value={requirementId} />}
-                <input name="author" required placeholder="Seu nome" className="input w-full text-[11px]" />
+                <input
+                  name="author"
+                  required
+                  placeholder="Seu nome"
+                  defaultValue={defaultAuthor}
+                  className="input w-full text-[11px]"
+                />
                 <input name="text" required placeholder="Comentário" className="input w-full text-[11px]" />
                 <button type="submit" className="text-[11px] font-medium text-brand-600 hover:underline">
                   Comentar →

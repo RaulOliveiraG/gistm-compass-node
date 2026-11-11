@@ -1,7 +1,8 @@
 import { prisma } from "@/lib/prisma";
+import { auth } from "@/auth";
 import { getInstallationContext } from "@/lib/context";
 import { PageHeader, PageBody, Card, EmptyState } from "@/components/ui";
-import { importDocuments, deleteDocument, approveDisclosure, updateDocumentDetails } from "./actions";
+import { importDocumentsBatch, finishImport, prepareDirectUploads, registerDirectUpload, deleteDocument, approveDisclosure, updateDocumentDetails } from "./actions";
 import { Trash2, ShieldCheck, AlertTriangle, Download, Search, SlidersHorizontal, Link2, EyeOff } from "lucide-react";
 import { format, isBefore } from "date-fns";
 import { ImportButton } from "@/components/ImportButton";
@@ -36,6 +37,7 @@ export default async function DocumentosPage({
   params: Promise<{ installationId: string }>;
   searchParams: Promise<SearchParamsRecord>;
 }) {
+  const userName = (await auth())?.user?.name ?? "";
   const { installationId } = await params;
   const sp = await searchParams;
   const q = typeof sp.q === "string" ? sp.q : "";
@@ -96,7 +98,12 @@ export default async function DocumentosPage({
             entram só pelo nome. Limite de 50 MB por arquivo.
           </InfoTip>
         }
-        action={<ImportButton action={importDocuments.bind(null, installation.id)} />}
+        action={<ImportButton
+            batchAction={importDocumentsBatch.bind(null, installation.id)}
+            finishAction={finishImport.bind(null, installation.id)}
+            prepareDirect={prepareDirectUploads.bind(null, installation.id)}
+            registerDirect={registerDirectUpload.bind(null, installation.id)}
+          />}
       />
 
       <PageBody className="space-y-4">
@@ -309,6 +316,7 @@ export default async function DocumentosPage({
                         >
                           <input
                             name="approvedBy"
+                            defaultValue={userName}
                             required
                             placeholder="Aprovado por"
                             className="input max-w-[200px] text-xs"

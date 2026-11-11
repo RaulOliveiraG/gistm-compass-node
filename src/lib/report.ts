@@ -296,6 +296,7 @@ export async function computeInstallationReport(
     installationName: installation.name,
     cycleName: cycle.name,
     validatedCount: effective.length,
+    humanValidatedCount: validated.length,
     totalRequirements,
     overallCompliance,
     totalmente,
@@ -351,6 +352,8 @@ function buildExecutiveSummary(input: {
   installationName: string;
   cycleName: string;
   validatedCount: number;
+  /** Quantos foram validados por uma pessoa (o resto é sugestão da IA). */
+  humanValidatedCount?: number;
   totalRequirements: number;
   overallCompliance: number | null;
   totalmente: number;
@@ -364,7 +367,7 @@ function buildExecutiveSummary(input: {
 
   if (input.validatedCount === 0) {
     return (
-      `A instalação ${input.installationName} ainda não possui requisitos validados no ` +
+      `A estrutura ${input.installationName} ainda não possui requisitos analisados no ` +
       `${input.cycleName}. A avaliação de conformidade com o GISTM está pendente de início.`
     );
   }

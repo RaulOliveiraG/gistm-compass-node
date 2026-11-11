@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { format, addDays } from "date-fns";
 import { Sparkles, Trash2, FileText } from "lucide-react";
 import { prisma } from "@/lib/prisma";
+import { auth } from "@/auth";
 import { getInstallationContext } from "@/lib/context";
 import { getOrCreateAssessment } from "@/lib/assessments";
 import { classificationLabel, criticalityLabel } from "@/lib/ai-simulator";
@@ -70,6 +71,8 @@ export default async function RequirementDetailPage({
   searchParams: Promise<{ cycle?: string; template?: string; lang?: string; aiAction?: string }>;
 }) {
   const { installationId, requirementId } = await params;
+  // Nome de quem está logado: preenche "Revisado por" e "Seu nome".
+  const userName = (await auth())?.user?.name ?? "";
   const { cycle: cycleParam, template: templateParam, lang: langParam, aiAction: aiActionParam } =
     await searchParams;
   const lang = await resolveLang(langParam);
@@ -265,11 +268,7 @@ export default async function RequirementDetailPage({
           <Card>
             <CardHeader
               title="Sugestão da IA"
-              subtitle={
-                assessment.aiConfidence
-                  ? `Confiança estimada ${Math.round(assessment.aiConfidence * 100)}%`
-                  : "Ainda sem sugestão"
-              }
+              subtitle={assessment.aiClassification ? "Sugestão para validar" : "Ainda sem sugestão"}
               action={
                 isLatestCycle && (
                   <form action={runAiSimulation.bind(null, installation.id, requirement.id)}>
@@ -551,7 +550,7 @@ export default async function RequirementDetailPage({
                 <input
                   name="reviewedBy"
                   className="input max-w-xs"
-                  defaultValue={assessment.reviewedBy ?? ""}
+                  defaultValue={assessment.reviewedBy ?? userName}
                   placeholder="Nome do revisor técnico"
                   required
                 />
@@ -598,6 +597,7 @@ export default async function RequirementDetailPage({
                         requirementId={requirement.id}
                         documents={documents.map((d) => ({ id: d.id, title: d.title }))}
                         readOnly={!isLatestCycle}
+                        defaultAuthor={userName}
                       />
                     </li>
                   ))}
@@ -639,7 +639,13 @@ export default async function RequirementDetailPage({
                     className="input"
                     defaultValue={suggestedDescription}
                   />
-                  <input name="responsible" required className="input" placeholder="Responsável" />
+                  <input
+                    name="responsible"
+                    required
+                    className="input"
+                    placeholder="Responsável"
+                    defaultValue={installation.rtfeName ?? ""}
+                  />
                   <div className="grid grid-cols-2 gap-2">
                     <input name="area" className="input" placeholder="Área (opcional)" defaultValue={suggestedArea} />
                     <input type="date" name="dueDate" className="input" defaultValue={suggestedDueDate} />
@@ -705,7 +711,7 @@ export default async function RequirementDetailPage({
                   <input type="hidden" name="installationId" value={installation.id} />
                   <input type="hidden" name="assessmentId" value={assessment.id} />
                   <input type="hidden" name="requirementId" value={requirement.id} />
-                  <input name="author" required className="input" placeholder="Seu nome" />
+                  <input name="author" required className="input" placeholder="Seu nome" defaultValue={userName} />
                   <textarea
                     name="text"
                     required

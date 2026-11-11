@@ -6,7 +6,7 @@ import type {
   InfoSufficiency,
   Requirement,
 } from "@prisma/client";
-import { POST_FAILURE_ONLY } from "@/lib/assessment-rubric";
+import { POST_FAILURE_ONLY, defaultCriticality } from "@/lib/assessment-rubric";
 
 /**
  * Simulador da camada de "leitura inteligente de evidências" descrita na
@@ -26,6 +26,10 @@ const STOPWORDS = new Set([
   "de","da","do","das","dos","e","a","o","as","os","em","para","com","por",
   "que","um","uma","no","nas","nos","na","ao","aos","é","ser","como","seu",
   "sua","seus","suas","ou","se","não","mais","item",
+  // inglês: a maior parte dos documentos técnicos chega em inglês
+  "the","and","for","with","that","this","from","shall","will","have","been",
+  "their","which","into","such","other","where","when","should","must","also",
+  "than","each","over","under","them","they","these","those","within",
 ]);
 
 export function tokenize(text: string): Set<string> {
@@ -92,11 +96,18 @@ export interface AiSuggestion {
   evidences: AiEvidenceSuggestion[];
 }
 
+// Povos indígenas não identificados (requisito 1.2): frases típicas de
+// estudos socioambientais em inglês e português.
+const NO_INDIGENOUS =
+  /\bno\s+(?:IPs|indigenous\s+(?:peoples?|communities))\s+(?:have\s+been|were|was|has\s+been)\s+identified|n[ãa]o\s+(?:foram|h[áa])\s+(?:identificad[oa]s\s+)?povos\s+ind[íi]genas/i;
+
 export function simulateAiReading(
-  requirement: Pick<Requirement, "code" | "title" | "description">,
+  requirement: Pick<Requirement, "code" | "title" | "description"> & { descriptionEn?: string | null },
   documents: Pick<DocumentFile, "id" | "title" | "extractedText">[]
 ): AiSuggestion {
-  const requirementTokens = tokenize(`${requirement.title} ${requirement.description}`);
+  const requirementTokens = tokenize(
+    `${requirement.title} ${requirement.description} ${requirement.descriptionEn ?? ""}`
+  );
 
   // Regra de aplicabilidade da régua: requisitos de recuperação pós-falha.
   if (POST_FAILURE_ONLY.includes(requirement.code)) {
@@ -117,11 +128,30 @@ export function simulateAiReading(
   // ser citado como evidência (antes o título entrava no lugar do conteúdo).
   const readable = documents.filter((d) => (d.extractedText ?? "").trim().length > 0);
 
+  if (requirement.code === "1.2") {
+    const doc = readable.find((d) => NO_INDIGENOUS.test(d.extractedText!));
+    if (doc) {
+      const m = doc.extractedText!.match(NO_INDIGENOUS)!;
+      const at = Math.max(0, (m.index ?? 0) - 120);
+      return {
+        classification: "NAO_SE_APLICA",
+        robustness: "PARCIAL",
+        criticality: "NAO_SE_APLICA",
+        infoSufficiency: "SUFICIENTE",
+        confidence: 0.7,
+        justification:
+          `"${doc.title}" registra que não foram identificados povos indígenas na área de influência. ` +
+          "Sugestão: \"Não se aplica\". Confirme na validação.",
+        evidences: [{ documentId: doc.id, excerpt: "…" + doc.extractedText!.slice(at, at + 260).replace(/\s+/g, " ") + "…" }],
+      };
+    }
+  }
+
   if (readable.length === 0) {
     return {
       classification: "NAO_ATENDE",
       robustness: "AUSENTE",
-      criticality: "ALTA",
+      criticality: defaultCriticality(requirement.code, "NAO_ATENDE"),
       infoSufficiency: "INSUFICIENTE",
       confidence: 0.3,
       justification:
@@ -140,21 +170,19 @@ export function simulateAiReading(
 
   let classification: FinalClassification;
   let robustness: EvidenceRobustness;
-  let criticality: GapCriticality;
 
   if (combined >= HEURISTIC_PARTIAL) {
     classification = "ATENDE_PARCIALMENTE";
     robustness = "PARCIAL";
-    criticality = "MEDIA";
   } else if (combined >= HEURISTIC_WEAK) {
     classification = "ATENDE_PARCIALMENTE";
     robustness = "FRACA";
-    criticality = "ALTA";
   } else {
     classification = "NAO_ATENDE";
     robustness = "AUSENTE";
-    criticality = "ALTA";
   }
+  // Criticidade pelo assunto do requisito: antes quase toda lacuna saía "Alta".
+  const criticality: GapCriticality = defaultCriticality(requirement.code, classification);
 
   const confidence = Math.round((0.35 + combined * 0.55) * 100) / 100;
   const infoSufficiency: InfoSufficiency = robustness === "AUSENTE" ? "INSUFICIENTE" : "SUFICIENTE";
@@ -171,12 +199,10 @@ export function simulateAiReading(
       ? topMatches.map((s) => `"${s.doc.title}"`).join(", ")
       : "nenhum documento com correspondência textual relevante";
 
-  const percentText = Math.round(combined * 100);
   const justification =
     `A leitura automática por palavras-chave comparou este requisito com os ` +
     `${readable.length} documento(s) com texto da base documental. Os mais ` +
-    `relevantes encontrados foram: ${relevantDocsText}. A aderência textual estimada foi de ` +
-    `${percentText}%. Classificação sugerida: "${classificationLabel(classification)}", com ` +
+    `relevantes encontrados foram: ${relevantDocsText}. Classificação sugerida: "${classificationLabel(classification)}", com ` +
     `robustez de evidência "${robustnessLabel(robustness)}". Esta sugestão deve ser ` +
     `confirmada, ajustada ou rejeitada por um revisor técnico antes da validação final.`;
 

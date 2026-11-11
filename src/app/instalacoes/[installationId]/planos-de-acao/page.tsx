@@ -1,6 +1,7 @@
 import { isBefore } from "date-fns";
 import clsx from "clsx";
 import { prisma } from "@/lib/prisma";
+import { auth } from "@/auth";
 import { getInstallationContext } from "@/lib/context";
 import { PageHeader, PageBody, Card, EmptyState } from "@/components/ui";
 import { ActionItem, ACTION_STATUS_META } from "@/components/ActionItem";
@@ -28,6 +29,7 @@ export default async function PlanosDeAcaoPage({
   params: Promise<{ installationId: string }>;
   searchParams: Promise<SearchParamsRecord>;
 }) {
+  const userName = (await auth())?.user?.name ?? "";
   const { installationId } = await params;
   const sp = await searchParams;
   const cycleParam = typeof sp.cycle === "string" ? sp.cycle : undefined;
@@ -209,6 +211,7 @@ export default async function PlanosDeAcaoPage({
                           requirementId={action.assessment.requirementId}
                           documents={documents}
                           overdue={isOverdue(action)}
+                          defaultAuthor={userName}
                           readOnly={!isLatestCycle}
                           hideStatus
                         />

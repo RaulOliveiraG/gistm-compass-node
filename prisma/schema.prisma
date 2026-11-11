@@ -120,13 +120,47 @@ model Installation {
   accountableExecutive String?           // Executivo Responsável
   otherResponsibles    String?           // demais pessoas (texto livre, uma por linha)
 
+  // Enquadramento legal (aba "Normas e prazos")
+  country              String   @default("BR") // ISO 3166-1 alfa-2
+  uf                   String?           // estado, quando no Brasil
+  inPnsb               Boolean?          // inserida na Política Nacional de Segurança de Barragens
+  criClassification    String?           // Categoria de Risco: ALTO | MEDIO | BAIXO
+  constructionMethod   String?           // MONTANTE | JUSANTE | LINHA_DE_CENTRO | ETAPA_UNICA | OUTRO
+  gistmConsequence     String?           // BAIXA | SIGNIFICATIVA | ALTA | MUITO_ALTA | EXTREMA
+  zasCommunity         Boolean?          // há comunidade na Zona de Autossalvamento?
+
   documents        DocumentFile[]
   assessments      Assessment[]
   cycles           Cycle[]
   externalAnalyses ExternalAnalysis[]
   analysisRuns     AnalysisRun[]
+  legalChecks      LegalCheck[]
 
   @@index([organizationId])
+}
+
+// Checklist legal (aba "Normas e prazos"): uma linha por obrigação do
+// catálogo em src/lib/legal-catalog.ts. A IA sugere (ai*) e uma pessoa valida
+// (final*), como na avaliação dos requisitos GISTM.
+model LegalCheck {
+  id              String       @id @default(cuid())
+  installationId  String
+  installation    Installation @relation(fields: [installationId], references: [id])
+  obligationCode  String       // código da obrigação no catálogo (ex.: ANM-95-RISR)
+  aiStatus        String?      // CONFORME | NAO_CONFORME | NAO_APLICAVEL | SEM_EVIDENCIA
+  aiJustification String?
+  aiDocumentId    String?
+  aiExcerpt       String?
+  aiAt            DateTime?
+  finalStatus     String?
+  finalNote       String?
+  lastDoneAt      DateTime?    // última vez que a obrigação foi cumprida (informado pelo revisor)
+  reviewedBy      String?
+  reviewedAt      DateTime?
+  updatedAt       DateTime     @updatedAt
+
+  @@unique([installationId, obligationCode])
+  @@index([installationId])
 }
 
 // Registro de cada "Analisar documentos novos": quais documentos entraram e o
